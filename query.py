@@ -1,6 +1,7 @@
 import json
 
-from sqlalchemy import func, select, desc
+from sqlalchemy import func, select, desc, Integer
+from sqlalchemy.sql.expression import cast
 from sqlalchemy.orm import aliased
 
 import db
@@ -71,7 +72,7 @@ def filter_rows_legacy_joins():
     Reflex = aliased(EmailDataRaw)
 
     statement = (
-        select(func.sum(EmailDataRaw.V["topics_discussed"][0]["num_segments"]).label('total'))
+        select(func.sum(cast(EmailDataRaw.V["topics_discussed"][0]["num_segments"], Integer)).label('total'))
         .join(Reflex, Reflex.V["company"]["$oid"] == EmailDataRaw.V["company"]["$oid"])
         .filter(Reflex.V["company"]["$oid"] == "5a31b9f37e9beb6b6c1da122")
     )

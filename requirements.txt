@@ -1,2 +1,2 @@
-sqlalchemy
-snowflake-sqlalchemy
+snowflake-sqlalchemy==1.4.1
+SQLAlchemy==1.4.40
