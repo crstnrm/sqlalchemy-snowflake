@@ -1,6 +1,8 @@
 import json
 
-from sqlalchemy import select
+from sqlalchemy import func, select, desc
+from sqlalchemy.orm import aliased
+
 import db
 from model import EmailDataRaw
 
@@ -50,6 +52,36 @@ def filter_rows_legacy_by_v_oid():
         results = conn.execute(statement)
     return results
 
+def filter_rows_legacy_group_by():
+    statement = (
+        select(EmailDataRaw.V["thread_id"], func.count(EmailDataRaw.V).label('counter'))
+        .group_by(EmailDataRaw.V["thread_id"])
+        .order_by(desc(EmailDataRaw.V["thread_id"]))
+        .limit(5)
+    )
+
+    print(statement.compile(compile_kwargs={"literal_binds": True}))
+
+    with db.connection() as conn:
+        results = conn.execute(statement)
+    return results
+
+
+def filter_rows_legacy_joins():
+    Reflex = aliased(EmailDataRaw)
+
+    statement = (
+        select(func.sum(EmailDataRaw.V["topics_discussed"][0]["num_segments"]).label('total'))
+        .join(Reflex, Reflex.V["company"]["$oid"] == EmailDataRaw.V["company"]["$oid"])
+        .filter(Reflex.V["company"]["$oid"] == "5a31b9f37e9beb6b6c1da122")
+    )
+
+    print(statement.compile(compile_kwargs={"literal_binds": True}))
+
+    with db.connection() as conn:
+        results = conn.execute(statement)
+    return results
+
 
 def print_info(rows):
     print("cursor type: %s" % type(rows))
@@ -80,6 +112,14 @@ if __name__ == "__main__":
 
     # print_info(filter_rows_legacy_by_v())
 
-    print("\n############# Filter by variant type - filter by oid #############")
+    # print("\n############# Filter by variant type - filter by #############")
 
-    print_info(filter_rows_legacy_by_v_oid())
+    # print_info(filter_rows_legacy_by_v_oid())
+
+    # print("\n############# Filter by variant type - group by #############")
+
+    # print(list(filter_rows_legacy_group_by()))
+
+    print("\n############# Filter by variant type - joins #############")
+
+    print(list(filter_rows_legacy_joins()))
