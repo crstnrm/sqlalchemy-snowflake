@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 import db
 from model import EmailDataRaw
 
@@ -26,11 +26,22 @@ def get_first_5_rows():
 def filter_rows_legacy_by_v():
     statement = (
         select(EmailDataRaw)
-        # This does not work yet -
-        # .filter(EmailDataRaw.V["thread_id"] == "178eb206326b9e85")
-        # This works
-        .filter(EmailDataRaw.V.op(':')(text('thread_id')) == "178eb206326b9e85")
+        .filter(EmailDataRaw.V["thread_id"] == "178eb206326b9e85")
         .limit(5)
+    )
+
+    print(statement.compile(compile_kwargs={"literal_binds": True}))
+
+    with db.connection() as conn:
+        results = conn.execute(statement)
+    return results
+
+
+def filter_rows_legacy_by_v_oid():
+    statement = (
+        select(EmailDataRaw)
+        .filter(EmailDataRaw.V["_id"]["$oid"] == "607dba7862de111f4f18d9d2")
+        .limit(1)
     )
 
     print(statement.compile(compile_kwargs={"literal_binds": True}))
@@ -46,6 +57,8 @@ def print_info(rows):
     rows = list(rows)
     print("row type: %s" % type(rows[0]))
     print("column type (variant): %s" % type(rows[0].V))
+
+    print("rows length: %s" % len(rows))
 
     column = json.loads(rows[0].V)
     print("column type (variant) using json.loads: %s" % type(column))
@@ -63,6 +76,10 @@ if __name__ == "__main__":
 
     # print_info(get_first_5_rows())
 
-    print("\n############# Filter by variant type #############")
+    # print("\n############# Filter by variant type #############")
 
-    print(list(filter_rows_legacy_by_v()))
+    # print_info(filter_rows_legacy_by_v())
+
+    print("\n############# Filter by variant type - filter by oid #############")
+
+    print_info(filter_rows_legacy_by_v_oid())
